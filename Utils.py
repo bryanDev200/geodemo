@@ -27,9 +27,9 @@ def google_reverse_geocode(latitude, longitude):
     return location
 
 
-def read_file():
+def read_file(file_name):
     data = []
-    filepath = "C:\\Users\\Bryan\\Downloads\\Cibertec_ResultadosGeo.xlsx";
+    filepath = "upoloads\\" + file_name;
     open_file = xlrd.open_workbook(filepath)
     sheet = open_file.sheet_by_name("Cibertec_ResultadosGeo")
     for i in range(sheet.nrows):

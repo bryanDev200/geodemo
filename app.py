@@ -1,13 +1,16 @@
+import os.path
+
 from flask import Flask, jsonify, request
 from Utils import reverse_geocode, geocode, google_geocode, google_reverse_geocode
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"]='mysql+pymysql://root:mysql@localhost/bd_demo_geo'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]=False
-
+app.config["UPLOAD_FOLDER"] = "uploads"
 db = SQLAlchemy(app)
 m = Marshmallow(app)
 
@@ -79,6 +82,15 @@ def reverse_google_geocode():
         return jsonify({"address": result})
     else:
         return jsonify({'response': {'message': 'flag invalido'}})
+
+
+@app.route("/geoservice/file", methods=['POST'])
+def upload_file():
+    file = request.files['uploadFiles']
+    file_name = secure_filename(file.filename)
+
+    file.save(os.path.join(app.config["UPLOAD_FOLDER"], file_name))
+    return "archivo cargado"
 
 
 if __name__ == '__main__':
