@@ -1,2 +1,2 @@
 # geodemo
-demo proyecto geoservices
+demo proyecto geoservices para la empresa TYNPU

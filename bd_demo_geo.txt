@@ -1,0 +1,40 @@
+CREATE DATABASE  IF NOT EXISTS  bd_demo_geo;
+
+use bd_demo_geo;
+
+DROP TABLE IF EXISTS tb_latlong;
+create table tb_latlong(
+id int primary key AUTO_INCREMENT,
+latitud varchar(60),
+longitud varchar(60)
+); 
+
+
+DROP TABLE IF EXISTS tb_address;
+create table tb_address(
+id int primary key AUTO_INCREMENT,
+address varchar(200)
+);
+
+DROP TABLE IF EXISTS tb_user;
+create table tb_user(
+idusuario int primary key AUTO_INCREMENT,
+nombre varchar(200),
+apellido varchar(200),
+usuario varchar(200),
+contraseña varchar(200) 
+);
+
+#DROP TABLE IF EXISTS tb_token;
+#create table tb_token(
+#id int primary key AUTO_INCREMENT,
+#descripcion varchar(200),
+#idusuario int,
+#FOREIGN KEY (idusuario) REFERENCES tb_user (idusuario)
+#);
+
+
+select *from tb_latlong;	
+select *from tb_address;
+select *from tb_user;
+select *from  tb_token
