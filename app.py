@@ -135,18 +135,21 @@ def create_user():
 def logear():
     
     user = request.json['usuario']
-    
+    psw= request.json['contraseña']
     nombre= db.session.query(tb_user).filter(tb_user.usuario==user).first()
+    contra= db.session.query(tb_user).filter(tb_user.contraseña==psw , tb_user.usuario==user).first()
     id= db.session.query(tb_user.idusuario).filter(tb_user.usuario==user)
 
     if nombre:
-        token=write_token2(data=request.get_json())
-        new_tbl=tb_token(token,id)
-        db.session.add(new_tbl)   
-        db.session.commit()
+        if contra :
+            token=write_token2(data=request.get_json())
+            new_tbl=tb_token(token,id)
+            db.session.add(new_tbl)   
+            db.session.commit()
         
-        return  token
-       
+            return  token
+        else:
+            return 'Contraseña incorrecta'
     else:
         return 'Usuario no encontrado'
    
@@ -240,7 +243,7 @@ def valida_token(token, output=False):
     
 @app.route('/verify/token')
 def verify():
-   location = google_reverse_geocode(request.json['lat'], request.json['long'])
+
    token = request.headers['Authorization'].split(" ")[1]
    return valida_token(token, output=True) 
  
