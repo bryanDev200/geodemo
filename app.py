@@ -67,9 +67,10 @@ class tb_user(db.Model):
     usuario= db.Column(db.String(200))
     contraseña= db.Column(db.String(200))
     
-    def __init__(self,fullname,usuario,contraseña):
+    def __init__(self,nombre,apellido,usuario,contraseña):
        
-        self.fullname=fullname
+        self.nombre=nombre
+        self.apellido=apellido
         self.usuario=usuario
         self.contraseña=contraseña
 
@@ -81,6 +82,24 @@ class esquema(ma.Schema):
 esquema_post= esquema()
 esquema_post=esquema(many=True)
 
+#token
+class tb_token(db.Model):
+    id= db.Column(db.Integer, primary_key=True)
+    descripcion= db.Column(db.String(200))
+    idusuario= db.Column(db.Integer, foreig_key=True)
+
+    def __init__(self,descripcion,idusuario):
+       
+        self.descripcion=descripcion
+        self.idusuario=idusuario
+
+
+class esquema(ma.Schema):
+    class Meta:
+        fields = ('id','descripcion','idusuario')
+
+esquema_post= esquema()
+esquema_post=esquema(many=True)
 
 with app.app_context():
     db.create_all()
@@ -94,14 +113,44 @@ def create_user():
     
     nombre=request.json['nombre']
     apellido=request.json['apellido']
-    usuario=request.json['usuario']
+    user=request.json['usuario']
     contraseña= request.json['contraseña']
 
-    new_user = tb_user(nombre,apellido,usuario,contraseña)
-    db.session.add(new_user)   
+    variable= db.session.query(tb_user).filter(tb_user.usuario==user).first()
 
-    db.session.commit()
-    return 'Usuario Registrado Exitosamente!'
+    if variable:
+          return 'Ya existe el usuario'
+          
+    else:
+            new_user = tb_user(nombre,apellido,user,contraseña)
+            db.session.add(new_user)   
+
+            db.session.commit()
+            return 'Usuario Registrado Exitosamente!'
+
+#login
+#devuelve token
+
+@app.route('/login', methods=['POST'])
+def logear():
+    
+    user = request.json['usuario']
+    
+    nombre= db.session.query(tb_user).filter(tb_user.usuario==user).first()
+    id= db.session.query(tb_user.idusuario).filter(tb_user.usuario==user)
+
+    if nombre:
+        token=write_token2(data=request.get_json())
+        new_tbl=tb_token(token,id)
+        db.session.add(new_tbl)   
+        db.session.commit()
+        
+        return  token
+       
+    else:
+        return 'Usuario no encontrado'
+   
+
 
 ##
 @app.route("/geoservice/google_geocode", methods=['POST'])
@@ -158,6 +207,45 @@ def upload_file():
     file.save(os.path.join(app.config["UPLOAD_FOLDER"], file_name))
     return "archivo cargado"
 
+
+#implementando token 
+
+#primera forma
+def write_token(data:dict):
+    token = secrets.token_urlsafe(20)
+    return token.encode('UTF-8')
+
+#segunda forma
+def write_token2(data:dict):
+    token = jwt.encode(payload={**data, "exp":datetime.utcnow()+timedelta(seconds=60)},key=app.config['SECRET_KEY'], algorithm="HS256")
+    return token.encode('UTF-8')
+
+#validar token
+def valida_token(token, output=False):
+
+            try:
+                if output:
+               
+                    return  decode(token, key=app.config['SECRET_KEY'], algorithms="HS256")
+        
+            except exceptions.DecodeError:
+                response= jsonify({'message':'Token invalido'})
+                response.status_code=401
+                return response
+            except exceptions.ExpiredSignatureError:
+                response= jsonify({'message':'Token expirado'})
+                response.status_code=401
+                return response
+        
+    
+@app.route('/verify/token')
+def verify():
+   location = google_reverse_geocode(request.json['lat'], request.json['long'])
+   token = request.headers['Authorization'].split(" ")[1]
+   return valida_token(token, output=True) 
+ 
+
+#
 
 if __name__ == '__main__':
     app.run(debug=True, port=4000)
