@@ -1,5 +1,4 @@
 import os.path
-
 from flask import Flask, jsonify, request,Blueprint, make_response
 from Utils import reverse_geocode, geocode, google_geocode, google_reverse_geocode
 from flask_sqlalchemy import SQLAlchemy
@@ -27,37 +26,25 @@ ma = Marshmallow(app)
 #MySql 
 #implementando sqlalchemy para registro en tablas
 
-#nombre-direccion
+#latitud/longitud/direccion
 class tb_address(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    latitud = db.Column(db.String(60))
+    longitud = db.Column(db.String(60))
     address = db.Column(db.String(255), unique=False)
 
-    def __init__(self, address):
+    def __init__(self, latitud, longitud, address):
+        self.latitud = latitud
+        self.longitud = longitud
         self.address = address
 
 class direc_esquema(ma.Schema):
     class Meta:
-        fields = ('id','address')
+        fields = ('id','latitud','longitud','address')
 
 esquema_post= direc_esquema()
 esquema_post=direc_esquema(many=True)
 
-#latitud/longitud
-class tb_latlong(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    latitud = db.Column(db.String(60))
-    longitud = db.Column(db.String(60))
-
-    def __init__(self, latitud, longitud):
-        self.latitud = latitud
-        self.longitud = longitud
-
-class esquema(ma.Schema):
-    class Meta:
-        fields = ('id','latitud','longitud')
-
-esquema_post= esquema()
-esquema_post=esquema(many=True)
 
 #usuario
 class tb_user(db.Model):
@@ -86,7 +73,7 @@ esquema_post=esquema(many=True)
 class tb_token(db.Model):
     id= db.Column(db.Integer, primary_key=True)
     descripcion= db.Column(db.String(200))
-    idusuario= db.Column(db.Integer, foreig_key=True)
+    idusuario= db.Column(db.Integer)
 
     def __init__(self,descripcion,idusuario):
        
@@ -160,11 +147,8 @@ def logear():
 def direct_google_geocode():
     if int(request.json['flag']) == 2:
         location = google_geocode(request.json['address'])
-        print(location.raw)
-        new_latlong = tb_latlong(location.latitude, location.longitude)
-        new_address = tb_address(location.address)
 
-        db.session.add(new_latlong)
+        new_address = tb_address(location.latitude,location.longitude,location.address)
         db.session.add(new_address)
 
         db.session.commit()
@@ -182,11 +166,9 @@ def reverse_google_geocode():
     if int(request.json['flag']) == 2:
         location = google_reverse_geocode(request.json['latitude'], request.json['longitude'])
         
-        new_address = tb_address(location.address)
-        new_latlong = tb_latlong(location.latitude, location.longitude)
+        new_address = tb_address(location.latitude,location.longitude,location.address)
         
         db.session.add(new_address)
-        db.session.add(new_latlong)
 
         db.session.commit()
         
@@ -228,9 +210,12 @@ def valida_token(token, output=False):
 
             try:
                 if output:
-               
+                    
                     return  decode(token, key=app.config['SECRET_KEY'], algorithms="HS256")
-        
+                else:
+                        usuario = request.json['usuario']
+
+                        return  jsonify({"response": usuario})
             except exceptions.DecodeError:
                 response= jsonify({'message':'Token invalido'})
                 response.status_code=401
